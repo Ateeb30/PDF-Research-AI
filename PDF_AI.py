@@ -7,8 +7,7 @@ import streamlit as st
 import fitz, tiktoken, faiss, requests, json, os
 
 
-load_dotenv()
-API_KEY = os.getenv("DEEP_SEEK_API")
+API_KEY = st.secrets["DEEP_SEEK_API"]
 
 # Load model with error handling
 @st.cache_resource
