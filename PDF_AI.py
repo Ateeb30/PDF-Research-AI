@@ -103,7 +103,7 @@ def ask_deepseek(user_ques, related_chunks):
 # Streamlit UI
 st.header("AI Research Assistant App")
 st.subheader("Chunking and Tokenization")
-st.sidebar.markdown("""
+st.sidebar.write("""
 **HOW TO USE:**
 1. Upload your PDF  
 2. Let it process (PDFs over 200 pages might take a couple of minutes)  
