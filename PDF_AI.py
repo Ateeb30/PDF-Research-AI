@@ -133,10 +133,19 @@ if file:
     faiss_index = build_faiss_index(chunk_embeddings)
     
     user_ques = st.text_input("Ask a question about the PDF:")
+    if "summary" in user_ques.lower() or "summarize" in user_ques.lower():
+        st.error("Please avoid asking for summaries. Ask specific, detailed questions instead.")
+        st.stop()
+
     if user_ques:
         related_chunks = retrieval(user_ques, chunks, faiss_index)
         context = "\n\n".join(related_chunks)
-        if num_tokens_from_string(context) > 3500:  # Adjust limit based on model's context window
+
+            # NEW: Check if the retrieved chunks are too short (likely empty or not useful)
+        if all(len(chunk.strip()) < 30 for chunk in related_chunks):
+            st.error("The retrieved content seems insufficient. Please ask a more specific question.")
+
+        elif num_tokens_from_string(context) > 3500:  # Adjust limit based on model's context window
             st.error("Please try asking a more specific question.")
         else:
             with st.spinner("Generating a response..."):
