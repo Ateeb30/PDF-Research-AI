@@ -26,6 +26,12 @@ def count_tokens(text):
     tokens = encoding.encode(text)
     return len(tokens)
 
+
+def num_tokens_from_string(string: str, encoding_name: str = "cl100k_base"):
+    encoding = tiktoken.get_encoding(encoding_name)
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
+
 def chunk_text_fast(text, max_tokens=500):
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=max_tokens * 4,  # Approx. 4 characters per token
@@ -73,8 +79,7 @@ client = OpenAI(
   api_key=API_KEY,
 )
 
-def ask_deepseek(user_ques, related_chunks):
-    context = "\n\n".join(related_chunks)
+def ask_deepseek(user_ques, context):
 
     status_message = st.empty()
     status_message.info("Generating response...")  # Shows loading message
@@ -106,7 +111,7 @@ st.subheader("Chunking and Tokenization")
 st.sidebar.write("""
 **HOW TO USE:**
 1. Upload your PDF  
-2. Let it process (PDFs over 200 pages might take a couple of minutes)  
+2. Let it process (PDFs over 500 pages take slightly longer)  
 3. Ask Questions!
 """)
 file = st.file_uploader("Upload your PDF here", type="pdf")
@@ -126,12 +131,18 @@ if file:
         chunk_embeddings = compute_embeddings(chunks)
 
     faiss_index = build_faiss_index(chunk_embeddings)
-
+    
     user_ques = st.text_input("Ask a question about the PDF:")
     if user_ques:
         related_chunks = retrieval(user_ques, chunks, faiss_index)
-        llm_answer = ask_deepseek(user_ques, related_chunks)
-        st.subheader("Context that answered your Question")
-        for i, chunk in enumerate(related_chunks, start=1):
-            st.write(f"Chunk {i}")
-            st.write(chunk)
+        context = "\n\n".join(related_chunks)
+        if num_tokens_from_string(context) > 3500:  # Adjust limit based on model's context window
+            st.error("Please try asking a more specific question.")
+        else:
+            with st.spinner("Generating a response..."):
+                llm_answer = ask_deepseek(user_ques, context)
+                st.write(llm_answer)
+            st.subheader("Context that answered your Question")
+            for i, chunk in enumerate(related_chunks, start=1):
+                st.write(f"Chunk {i}")
+                st.write(chunk)
